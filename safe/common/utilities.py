@@ -358,6 +358,13 @@ def round_thousand(my_int):
         my_int = my_int // 1000 * 1000
     return my_int
 
+def round_as_million(my_int):
+    """Round an integer or double to the nearest million if my_int
+    is more than a million
+    """
+    if my_int > 1000000:
+        my_int //= 1000000
+    return int(my_int)
 
 def humanize_min_max(min_value, max_value, interval):
     """Return humanize value format for max and min.
@@ -517,7 +524,6 @@ def unhumanize_class(my_classes):
                        format_decimal(interval, max_value)))
         min_value = max_value
     return result
-
 
 def unhumanize_number(number):
     """Return number without formatting.

@@ -12,7 +12,6 @@ Contact : ole.moller.nielsen@gmail.com
 """
 import csv
 import os
-from qgis.core import QgsMessageLog, QgsMessageLogConsole, QgsMessageOutput
 
 from safe.metadata import (
     hazard_flood,
@@ -27,7 +26,7 @@ from safe.metadata import (
     hazard_definition,
     exposure_definition,
     unit_building_generic)
-from safe.common.utilities import OrderedDict
+from safe.common.utilities import OrderedDict, round_as_million, format_decimal
 from safe.impact_functions.core import (
     FunctionProvider, get_hazard_layer, get_exposure_layer, get_question)
 from safe.storage.vector import Vector
@@ -176,12 +175,7 @@ class FloodVulnerableBuildingImpactFunction(FunctionProvider):
 
         vulnerability_file = csv.DictReader(open(vulnerability_path))
 
-        # QgsMessageLogConsole.logMessage('Log Console',QgsMessageLog.INFO)
-        # QgsMessageLog.logMessage('Log message',QgsMessageLog.INFO)
-
         for row in vulnerability_file:
-            print row
-            print row['TYPE']
             building_type = row['TYPE'].replace(' ', '_').lower()
             # normalize type names for matching purposes
             price = float(row['PRICE'].replace('.', ''))  # Don't forget to sanitize the string from '.'
@@ -211,27 +205,25 @@ class FloodVulnerableBuildingImpactFunction(FunctionProvider):
         my_hazard = get_hazard_layer(layers)  # Depth
         my_exposure = get_exposure_layer(layers)  # Building locations
 
+        I = assign_hazard_values_to_exposure_data(
+            my_hazard, my_exposure)
+
+        attribute_names = I.get_attribute_names()
+        attributes = I.get_data()
+        N = len(attributes)
+
         question = get_question(
             my_hazard.get_name(),
             my_exposure.get_name(),
             self)
 
-        # No need for interpolation to follow spec.
-        # Just use polygon intersection
-
-        # Extract relevant exposure data
-        # There are only 2 attributes for hazard level
-        attribute_index = {
-            'affected': my_hazard.fieldNameIndex('affected'),
-            'CATEGORY': my_hazard.fieldNameIndex('CATEGORY')}
-
         # create report matrix
         report_matrix = {
             'All': {
-                'Number of flooded': 0,
+                'Number of Flooded': 0,
                 'Estimated Loss': 0,
                 'Total Building': 0,
-                'Total Building Value:': 0,
+                'Total Building Value': 0,
                 'Percentage of Loss': 0}}
 
         for key in vulnerability.keys():
@@ -239,69 +231,107 @@ class FloodVulnerableBuildingImpactFunction(FunctionProvider):
                 'Number of Flooded': 0,
                 'Estimated Loss': 0,
                 'Total Building': 0,
-                'Total Building Value:': 0,
+                'Total Building Value': 0,
                 'Percentage of Loss': 0}
 
-        # set the target metadata for building attributes
-        building_attributes = set(['type', 'TYPE', 'amenity', 'building_t', 'office', 'tourism', 'leisure', 'building']) & \
-            set([field.name() for field in my_exposure.pendingFields()])
+        for i in range(N):
+            # Use interpolated polygon attribute
+            atts = attributes[i]
 
-        building_category = vulnerability.keys() + ['supermarket']
-        # iterate the features in hazard (the flood area)
-        for area in my_hazard.getFeatures():
-            # select only flooded area
-            # get list of features in exposure that intersects with the
-            # flooded area
-            if area.attributes()[attribute_index['affected']] == 1:
-                intersected_buildings = [b for b in my_exposure.getFeatures() if b.geometry().intersect(area)]
-                not_intersected_buildings = [b for b in my_exposure.getFeatures() if b not in intersected_buildings]
+            # FIXME (Ole): Need to agree whether to use one or the
+            # other as this can be very confusing!
+            # For now look for 'affected' first
+            if 'affected' in atts:
+                # E.g. from flood forecast
+                # Assume that building is wet if inside polygon
+                # as flagged by attribute Flooded
+                res = atts['affected']
+                if res is None:
+                    x = False
+                else:
+                    x = bool(res)
 
-                for building in intersected_buildings:
-                    # check the building type
-                    # rule to choose the building type:
-                    # 1. get the list of attribute value of type that is included in the building type metadata
-                    # 2. choose the type in the building_types that is relevant with the vulnerability keys
-                    building_types = [building.attributes()[t] for t in building_attributes
-                                      if building.attributes()[t] in building_category]
+            elif 'FLOODPRONE' in atts:
+                res = atts['FLOODPRONE']
+                if res is None:
+                    x = False
+                else:
+                    x = res.lower() == 'yes'
+            elif DEFAULT_ATTRIBUTE in atts:
+                # Check the default attribute assigned for points
+                # covered by a polygon
+                res = atts[DEFAULT_ATTRIBUTE]
+                if res is None:
+                    x = False
+                else:
+                    x = res
+            else:
+                # there is no flood related attribute
+                msg = ('No flood related attribute found in %s. '
+                       'I was looking for either "affected", "FLOODPRONE" '
+                       'or "inapolygon". The latter should have been '
+                       'automatically set by call to '
+                       'assign_hazard_values_to_exposure_data(). '
+                       'Sorry I can\'t help more.')
+                raise Exception(msg)
 
-                    # choose the type if any, if not just choose 'other'
-                    if len(building_types) > 0:
-                        chosen_type = building_types[0]
-                        # the spec says this
-                        if chosen_type == 'supermarket':
-                            chosen_type = 'commercial'
-                    else:
-                        chosen_type = 'other'
+                # Count affected buildings by usage type if available
+            if 'type' in attribute_names:
+                usage = atts['type']
+            elif 'TYPE' in attribute_names:
+                usage = atts['TYPE']
+            else:
+                usage = None
+            if 'amenity' in attribute_names and (usage is None or usage == 0):
+                usage = atts['amenity']
+            if 'building_t' in attribute_names and (usage is None
+                                                    or usage == 0):
+                usage = atts['building_t']
+            if 'office' in attribute_names and (usage is None or usage == 0):
+                usage = atts['office']
+            if 'tourism' in attribute_names and (usage is None or usage == 0):
+                usage = atts['tourism']
+            if 'leisure' in attribute_names and (usage is None or usage == 0):
+                usage = atts['leisure']
+            if 'atts' in attribute_names and (usage is None or usage == 0):
+                usage = atts['building']
+                if usage == 'yes':
+                    usage = 'building'
 
-                    # add number of flooded buildings
-                    report_matrix[chosen_type]['Number of Flooded'] += 1
-                    # add estimated loss
-                    # 1. get default price of the chosen_type
-                    # 2. get category factor of the chosen_type
-                    price = vulnerability[chosen_type]['price']
-                    factor = vulnerability[chosen_type][area.attributes()[attribute_index['CATEGORY']]]
-                    report_matrix[chosen_type]['Estimated Loss'] += price * factor
-                    # add total number of building
-                    report_matrix[chosen_type]['Total Building'] += 1
-                    # add total number of building value
-                    report_matrix[chosen_type]['Total Building Value'] += price * factor
+            if usage is not None and usage != 0:
+                key = usage
+                if usage.lower() == 'supermarket':
+                    key = 'commercial'
+                else:
+                    key = 'other'
 
-                for building in not_intersected_buildings:
-                    # check the building type
-                    # rule to choose the building type:
-                    # 1. get the list of attribute value of type that is included in the building type metadata
-                    # 2. choose the type in the building_types that is relevant with the vulnerability keys
-                    building_types = [building.attributes()[t] for t in building_attributes
-                                      if building.attributes()[t] in vulnerability.keys()]
-                    # choose the type if any, if not just choose 'other'
-                    if len(building_types) > 0:
-                        chosen_type = building_types[0]
-                    else:
-                        chosen_type = 'other'
-                    # add total number of building
-                    report_matrix[chosen_type]['Total Building'] += 1
-                    # add total number of building value
-                    report_matrix[chosen_type]['Total Building Value'] += price * factor
+            # the building was flooded
+            category = atts['CATEGORY']
+            if category is not None:
+                # add number of flooded buildings
+                report_matrix[key]['Number of Flooded'] += 1
+                # add estimated loss
+                # 1. get default price of the chosen_type
+                # 2. get category factor of the chosen_type
+                price = vulnerability[key]['PRICE']
+                factor = vulnerability[key][category]
+                report_matrix[key]['Estimated Loss'] += price * factor
+                # add total number of building
+                report_matrix[key]['Total Building'] += 1
+                # add total number of building value
+                report_matrix[key]['Total Building Value'] += price
+            else:
+                # add estimated value
+                # 1. get default price of the chosen_type
+                # 2. get category factor of the chosen_type
+                price = vulnerability[key]['PRICE']
+
+                # add total number of building
+                report_matrix[key]['Total Building'] += 1
+                # add total number of building value
+                report_matrix[key]['Total Building Value'] += price
+
+            attributes[i][self.target_field] = int(x)
 
         # aggregate all the results to 'All' keys
         for key in report_matrix.keys():
@@ -312,35 +342,47 @@ class FloodVulnerableBuildingImpactFunction(FunctionProvider):
                     else:
                         loss = report_matrix[key]['Estimated Loss']
                         total_value = report_matrix[key]['Total Building Value']
-                        report_matrix[key][column] = loss * 100.0 / total_value
+                        if total_value > 0.0:
+                            report_matrix[key][column] = loss * 100.0 / total_value
         else:
             loss = report_matrix['All']['Estimated Loss']
             total_value = report_matrix['All']['Total Building Value']
             report_matrix['All']['Percentage of Loss'] = loss * 100.0 / total_value
 
         # Generate simple impact report
-        table_body = [question,
-                      TableRow(
-                          [tr('Building Type')] + [tr(key) for key in report_matrix.keys()], header=True),
-                      TableRow(
-                          [tr('All')] +
-                          [format_int(report_matrix['All'][field]) for field in report_matrix.keys()])]
+        table_body = [
+            question,
+            TableRow([
+                tr('Building Type'),
+                tr('Number of Flooded'),
+                tr('Estimated Loss (in million Rupiah)'),
+                tr('Total Building'),
+                tr('Total Building Value (in million Rupiah))'),
+                tr('Percentage of Loss (%)')], header=True),
+            TableRow([
+                tr('All'),
+                format_int(report_matrix['All']['Number of Flooded']),
+                format_int(round_as_million(report_matrix['All']['Estimated Loss'])),
+                format_int(report_matrix['All']['Total Building']),
+                format_int(round_as_million(report_matrix['All']['Total Building Value'])),
+                format_decimal(0.12, report_matrix['All']['Percentage of Loss'])])]
 
         # Generate break down by building usage type is available
-        if len(building_attributes) > 0:
+        if len(vulnerability.keys()[1:]) > 0:
             # Make list of building types
             building_list = []
-            for usage in vulnerability.keys():
+            for usage in vulnerability.keys()[1:]:
                 building_type = usage.replace('_', ' ')
 
                 # Lookup internationalised value if available
                 building_type = tr(building_type)
-                building_list.append(
-                    [building_type.capitalize()] +
-                    [format_int(report_matrix[usage][field]) for field in report_matrix.keys()])
-
-            # Sort alphabetically
-            building_list.sort()
+                building_list.append([
+                    building_type.capitalize(),
+                    format_int(report_matrix[usage]['Number of Flooded']),
+                    format_int(round_as_million(report_matrix[usage]['Estimated Loss'])),
+                    format_int(report_matrix[usage]['Total Building']),
+                    format_int(round_as_million(report_matrix[usage]['Total Building Value'])),
+                    format_int(report_matrix[usage]['Percentage of Loss'])])
 
             table_body.append(TableRow(tr('Breakdown by building type'),
                                        header=True))
@@ -348,4 +390,36 @@ class FloodVulnerableBuildingImpactFunction(FunctionProvider):
                 s = TableRow(row)
                 table_body.append(s)
 
-        return None
+        # Result
+        impact_summary = Table(table_body).toNewlineFreeString()
+        impact_table = impact_summary
+
+        # Create style
+        style_classes = [dict(label=tr('Not Inundated'), value=0,
+                              colour='#1EFC7C', transparency=0, size=1),
+                         dict(label=tr('Inundated'), value=1,
+                              colour='#F31A1C', transparency=0, size=1)]
+        style_info = dict(target_field=self.target_field,
+                          style_classes=style_classes,
+                          style_type='categorizedSymbol')
+
+        # For printing map purpose
+        map_title = tr('Buildings inundated')
+        legend_units = tr('(inundated or not inundated)')
+        legend_title = tr('Structure inundated status')
+
+        # Create vector layer and return
+        V = Vector(data=attributes,
+                   projection=I.get_projection(),
+                   geometry=I.get_geometry(),
+                   name=tr('Estimated buildings affected'),
+                   keywords={'impact_summary': impact_summary,
+                             'impact_table': impact_table,
+                             'target_field': self.target_field,
+                             'map_title': map_title,
+                             'legend_units': legend_units,
+                             'legend_title': legend_title,
+                             'buildings_total': report_matrix['All']['Total Building'],
+                             'buildings_affected': report_matrix['All']['Number of Flooded']},
+                   style_info=style_info)
+        return V

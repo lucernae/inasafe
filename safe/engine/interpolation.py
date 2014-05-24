@@ -509,8 +509,8 @@ def interpolate_polygon_points(source, target,
                                  holes=polygon.inner_rings)
 
         for k in indices:
-            for key in poly_attr:
-                # Assign attributes from polygon to points
+            for key in poly_attr.keys():
+                # Assign attributes from polygon to point
                 attributes[k][key] = poly_attr[key]
             attributes[k]['polygon_id'] = i  # Store id for associated polygon
 

@@ -54,6 +54,7 @@ class FloodAssessmentDialog(QtGui.QDialog, Ui_FloodAssessmentDialogBase):
             self.get_output_dir)
         self.dim_path.textChanged.connect(self.on_dim_path_textChanged)
         self.output_path.textChanged.connect(self.on_output_path_textChanged)
+        self.same_dir_checkbox.stateChanged.connect(self.on_same_dir_checkbox_stateChanged)
 
         # Get all current project layers for combo box
         self.get_project_layers()
@@ -180,7 +181,6 @@ class FloodAssessmentDialog(QtGui.QDialog, Ui_FloodAssessmentDialogBase):
             elif row['DURASI'] <= 6:
                 duration = 1
             else:
-                self.warning_text.add('{0}'.format(row['ID_RWKEL']))
                 duration = 2
             row['CATEGORY'] = category_matrix[row['KETINGGIAN']][duration]
 
@@ -240,10 +240,17 @@ class FloodAssessmentDialog(QtGui.QDialog, Ui_FloodAssessmentDialogBase):
         if is_load_result:
             QgsMapLayerRegistry.instance().addMapLayer(new_layer)
 
-        # self.done(self.Accepted)
+        self.done(self.Accepted)
 
     def cancel_operation(self):
         self.close()
+
+    def on_same_dir_checkbox_stateChanged(self):
+        if self.same_dir_checkbox.isChecked():
+            self.output_path.setDisabled(True)
+            self.on_dim_path_textChanged()
+        else:
+            self.output_path.setDisabled(False)
 
     def on_dim_path_textChanged(self):
         """Action when input file name is changed.
