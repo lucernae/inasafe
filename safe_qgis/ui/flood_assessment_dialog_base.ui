@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>FloodAssessmentDialogBase</class>
+ <widget class="QDialog" name="FloodAssessmentDialogBase">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>525</width>
+    <height>635</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <widget class="QGroupBox" name="groupBox_2">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>128</y>
+     <width>508</width>
+     <height>200</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>Input</string>
+   </property>
+   <layout class="QGridLayout" name="gridLayout_7">
+    <item row="0" column="0">
+     <widget class="QLabel" name="label_5">
+      <property name="text">
+       <string>Data Kejadian Banjir / DIM (*.csv)</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="0">
+     <widget class="QComboBox" name="hazard_layer_combo"/>
+    </item>
+    <item row="1" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout_5">
+      <item>
+       <widget class="QLineEdit" name="dim_path">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="open_dim_tool">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="text">
+         <string>...</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item row="2" column="0">
+     <widget class="QLabel" name="label_title_3">
+      <property name="text">
+       <string>Hazard Layer (flood)</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QDialogButtonBox" name="button_box">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>602</y>
+     <width>508</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+   <property name="standardButtons">
+    <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+   </property>
+  </widget>
+  <widget class="QGroupBox" name="groupBox_3">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>334</y>
+     <width>508</width>
+     <height>144</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>Output</string>
+   </property>
+   <layout class="QGridLayout" name="gridLayout_8">
+    <item row="1" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout_6">
+      <item>
+       <widget class="QLineEdit" name="output_path">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="open_output_tool">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>...</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item row="2" column="0">
+     <widget class="QLabel" name="label_6">
+      <property name="text">
+       <string>The output will be a .shp shape file</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0">
+     <widget class="QCheckBox" name="same_dir_checkbox">
+      <property name="text">
+       <string>Same directory as input file</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="0">
+     <widget class="QCheckBox" name="load_result_checkbox">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="text">
+       <string>Add output layer to QGIS project</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QWebView" name="webView" native="true">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>508</width>
+     <height>112</height>
+    </rect>
+   </property>
+   <property name="url" stdset="0">
+    <url>
+     <string>about:blank</string>
+    </url>
+   </property>
+  </widget>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QWebView</class>
+   <extends>QWidget</extends>
+   <header>QtWebKit/QWebView</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>button_box</sender>
+   <signal>accepted()</signal>
+   <receiver>FloodAssessmentDialogBase</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>263</x>
+     <y>615</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>262</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>button_box</sender>
+   <signal>rejected()</signal>
+   <receiver>FloodAssessmentDialogBase</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>263</x>
+     <y>615</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>262</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

@@ -19,9 +19,11 @@ __copyright__ += 'Disaster Reduction'
 import sys
 import os
 import logging
+
 from safe_qgis.utilities import custom_logging
 from safe_qgis.utilities.keyword_io import KeywordIO
 from safe_qgis.utilities.utilities import is_raster_layer
+
 
 LOGGER = logging.getLogger('InaSAFE')
 
@@ -93,6 +95,7 @@ class Plugin:
         self.action_options = None
         self.action_keywords_dialog = None
         self.action_keywords_wizard = None
+        self.action_flood_assessment_dlg = None
         self.translator = None
         self.toolbar = None
         self.actions = []  # list of all QActions we create for InaSAFE
@@ -364,6 +367,17 @@ class Plugin:
         self.add_action(self.action_impact_merge_dlg)
 
         #--------------------------------------
+        # Create action for impact layer merge Dialog
+        #--------------------------------------
+        self.action_flood_assessment_dlg = QAction(
+            QIcon(':/plugins/inasafe/icon.svg'),
+            self.tr('InaSAFE Flood Assessment Creator'),
+            self.iface.mainWindow())
+        self.action_flood_assessment_dlg.triggered.connect(self.show_flood_assessment)
+
+        self.add_action(self.action_flood_assessment_dlg)
+
+        #--------------------------------------
         # create dockwidget and tabify it with the legend
         #--------------------------------------
         self.dock_widget = Dock(self.iface)
@@ -476,6 +490,14 @@ class Plugin:
         from safe_qgis.tools.impact_merge_dialog import ImpactMergeDialog
 
         dialog = ImpactMergeDialog(self.iface.mainWindow())
+        dialog.exec_()  # modal
+
+    def show_flood_assessment(self):
+        """Show the flood assessment dialog."""
+        # import here only so that it is AFTER i18n set up
+        from safe_qgis.tools.flood_assessment_dialog import FloodAssessmentDialog
+
+        dialog = FloodAssessmentDialog(self.iface.mainWindow())
         dialog.exec_()  # modal
 
     def show_options(self):
