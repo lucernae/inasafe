@@ -431,7 +431,7 @@ class FloodVulnerableBuildingImpactFunction(FunctionProvider):
                     format_int(round_as_million(report_matrix[usage]['Estimated Loss'])),
                     format_int(report_matrix[usage]['Total Building']),
                     format_int(round_as_million(report_matrix[usage]['Total Building Value'])),
-                    format_int(report_matrix[usage]['Percentage of Loss'])])
+                    format_decimal(0.12, report_matrix[usage]['Percentage of Loss'])])
 
             table_body.append(TableRow(tr('Breakdown by building type'),
                                        header=True))
