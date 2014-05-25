@@ -5,6 +5,7 @@ Flood Assessment Dialog used to join flood data in the area of a layer
 """
 import csv
 import logging
+from operator import contains
 import os
 from PyQt4.QtCore import pyqtSignature, QVariant
 from PyQt4.QtGui import QDialogButtonBox, QFileDialog
@@ -64,6 +65,7 @@ class FloodAssessmentDialog(QtGui.QDialog, Ui_FloodAssessmentDialogBase):
         """Update warning message and enable/disable Ok button."""
         if len(self.warning_text) == 0:
             self.button_box.button(QDialogButtonBox.Ok).setEnabled(True)
+            self.show_info()
             return
 
         header = html_header()
@@ -128,6 +130,24 @@ class FloodAssessmentDialog(QtGui.QDialog, Ui_FloodAssessmentDialogBase):
                     output_path = input_path[:last_dot + 1] + 'shp'
             self.output_path.setText(output_path)
 
+    def validate_input_csv(self, row):
+        """Check that the ID_RWKEL and KETINGGIAN is on the input CSV file
+
+        :param row: the row tha will be checked
+
+        :returns: a boolean that is True if the fields are exists
+        :rtype: bool
+        """
+        no_field_warning = 'Input CSV must contains ID_RWKEL and KETINGGIAN fields'
+        result = False
+        if not 'ID_RWKEL' in row.keys() or not'KETINGGIAN' in row.keys():
+            self.warning_text.add(no_field_warning)
+        elif no_field_warning in self.warning_text:
+            self.warning_text.remove(no_field_warning)
+            result = True
+        self.update_warning()
+        return result
+
     def accept(self):
         """Merge the data from DIM file and selected layer of flood hazard.
         """
@@ -141,7 +161,13 @@ class FloodAssessmentDialog(QtGui.QDialog, Ui_FloodAssessmentDialogBase):
         dim_data = []
         dim_file = csv.DictReader(open(dim_path))
 
+        file_validated = False
+
         for row in dim_file:
+            if not file_validated:
+                file_validated = self.validate_input_csv(row)
+                if not file_validated:
+                    return
             # store the following information:
             # ID_RWKEL, KETINGGIAN, DURASI
             # categorizes the depth to 3 category
@@ -246,6 +272,8 @@ class FloodAssessmentDialog(QtGui.QDialog, Ui_FloodAssessmentDialogBase):
         self.close()
 
     def on_same_dir_checkbox_stateChanged(self):
+        """Action when the same directory checkbox's state changed
+        """
         if self.same_dir_checkbox.isChecked():
             self.output_path.setDisabled(True)
             self.on_dim_path_textChanged()
@@ -262,6 +290,8 @@ class FloodAssessmentDialog(QtGui.QDialog, Ui_FloodAssessmentDialogBase):
         if not input_path.endswith('.csv'):
             self.warning_text.add(input_not_csv_msg)
         elif input_not_csv_msg in self.warning_text:
+            print 'halo'
+            LOGGER.info('damn')
             self.warning_text.remove(input_not_csv_msg)
 
         if not os.path.isfile(input_path):
@@ -271,6 +301,8 @@ class FloodAssessmentDialog(QtGui.QDialog, Ui_FloodAssessmentDialogBase):
 
         if self.same_dir_checkbox.isChecked():
             self.get_output_dir()
+
+        print len(self.warning_text)
         self.update_warning()
 
     def on_output_path_textChanged(self):
