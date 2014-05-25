@@ -1,6 +1,6 @@
 # coding=utf-8
-"""InaSAFE Disaster risk tool by Australian Aid - Flood Impact on OSM
-Buildings
+"""InaSAFE Disaster risk tool by Australian Aid - modified Hackathon entry for flood
+assessment
 
 Contact : ole.moller.nielsen@gmail.com
 
@@ -10,6 +10,10 @@ Contact : ole.moller.nielsen@gmail.com
      (at your option) any later version.
 
 """
+from itertools import count
+
+__author__ = 'maul'
+
 import csv
 import os
 
@@ -47,6 +51,8 @@ class FloodVulnerableBuildingImpactFunction(FunctionProvider):
 
     :author Ole Nielsen, Kristy van Putten
     # this rating below is only for testing a function, not the real one
+    :modified Rizky Maulana Nugraha
+
     :rating 0
     :param requires category=='hazard' and \
                     subcategory in ['flood', 'tsunami']
@@ -234,9 +240,23 @@ class FloodVulnerableBuildingImpactFunction(FunctionProvider):
                 'Total Building Value': 0,
                 'Percentage of Loss': 0}
 
+        # fix inconsistent attribute letter cases issues
+        for key in attribute_names[:]:
+            if not key.lower() in attribute_names:
+                attribute_names.append(key.lower())
+            if not key.upper() in attribute_names:
+                attribute_names.append(key.upper())
+
         for i in range(N):
             # Use interpolated polygon attribute
             atts = attributes[i]
+
+            # fix lower case uppercase issues
+            for key in attributes[i].keys()[:]:
+                if not key.lower() in attributes[i].keys():
+                    attributes[i][key.lower()] = attributes[i][key]
+                if not key.upper() in attributes[i].keys():
+                    attributes[i][key.upper()] = attributes[i][key]
 
             # FIXME (Ole): Need to agree whether to use one or the
             # other as this can be very confusing!
@@ -275,35 +295,48 @@ class FloodVulnerableBuildingImpactFunction(FunctionProvider):
                        'Sorry I can\'t help more.')
                 raise Exception(msg)
 
-                # Count affected buildings by usage type if available
+            # Count affected buildings by usage type if available
             if 'type' in attribute_names:
                 usage = atts['type']
+                usage = self.handle_malformed(usage, vulnerability.keys())
             elif 'TYPE' in attribute_names:
                 usage = atts['TYPE']
+                usage = self.handle_malformed(usage, vulnerability.keys())
             else:
                 usage = None
+
             if 'amenity' in attribute_names and (usage is None or usage == 0):
                 usage = atts['amenity']
+                usage = self.handle_malformed(usage, vulnerability.keys())
             if 'building_t' in attribute_names and (usage is None
                                                     or usage == 0):
                 usage = atts['building_t']
+                usage = self.handle_malformed(usage, vulnerability.keys())
             if 'office' in attribute_names and (usage is None or usage == 0):
                 usage = atts['office']
+                usage = self.handle_malformed(usage, vulnerability.keys())
             if 'tourism' in attribute_names and (usage is None or usage == 0):
                 usage = atts['tourism']
+                usage = self.handle_malformed(usage, vulnerability.keys())
             if 'leisure' in attribute_names and (usage is None or usage == 0):
                 usage = atts['leisure']
-            if 'atts' in attribute_names and (usage is None or usage == 0):
+                usage = self.handle_malformed(usage, vulnerability.keys())
+            if 'building' in attribute_names and (usage is None or usage == 0):
                 usage = atts['building']
                 if usage == 'yes':
                     usage = 'building'
+                    usage = self.handle_malformed(usage, vulnerability.keys())
 
             if usage is not None and usage != 0:
-                key = usage
-                if usage.lower() == 'supermarket':
+                usage = usage.lower().replace('_', '')
+                if usage in vulnerability.keys():
+                    key = usage
+                elif usage == 'supermarket':
                     key = 'commercial'
                 else:
                     key = 'other'
+            else:
+                key = 'other'
 
             # the building was flooded
             category = atts['CATEGORY']
@@ -330,6 +363,22 @@ class FloodVulnerableBuildingImpactFunction(FunctionProvider):
                 report_matrix[key]['Total Building'] += 1
                 # add total number of building value
                 report_matrix[key]['Total Building Value'] += price
+
+            # fix deletes extra attributes
+            for key in atts.keys()[:]:
+                # if there are only lowercase and uppercase attributes
+                # delete lowercase
+                for attrib in atts.keys():
+                    # make sure key is lowercase or uppercase
+                    if key.lower() == key:
+                        # if attrib is the lowercase version, and there is uppercase
+                        # somewhere, delete this
+                        if key == attrib and key.upper() in atts.keys():
+                            del atts[attrib]
+                        # if attrib is neither lowercase nor uppercase
+                        elif not key.upper() == attrib and not key == attrib and key == attrib.lower():
+                            del atts[attrib]
+                        # if it is uppercase, let it be
 
             attributes[i][self.target_field] = int(x)
 
@@ -368,10 +417,10 @@ class FloodVulnerableBuildingImpactFunction(FunctionProvider):
                 format_decimal(0.12, report_matrix['All']['Percentage of Loss'])])]
 
         # Generate break down by building usage type is available
-        if len(vulnerability.keys()[1:]) > 0:
+        if len(vulnerability.keys()) > 0:
             # Make list of building types
             building_list = []
-            for usage in vulnerability.keys()[1:]:
+            for usage in vulnerability.keys():
                 building_type = usage.replace('_', ' ')
 
                 # Lookup internationalised value if available
@@ -423,3 +472,18 @@ class FloodVulnerableBuildingImpactFunction(FunctionProvider):
                              'buildings_affected': report_matrix['All']['Number of Flooded']},
                    style_info=style_info)
         return V
+
+    @staticmethod
+    def handle_malformed(usage, lookup):
+        # handle lettercases and underscore
+        if usage is None:
+            return None
+        usage = usage.lower().replace('_', '')
+        if usage in lookup:
+            return usage
+        # handle substring
+        key_in_usage = [key for key in lookup if key in usage]
+        if len(key_in_usage) == 1:
+            return key_in_usage[0]
+        # if there is more than one key in the usage, decide in the next attributes
+        return None
