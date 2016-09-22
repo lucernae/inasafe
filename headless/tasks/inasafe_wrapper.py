@@ -20,7 +20,7 @@ __date__ = '1/19/16'
 LOGGER = logging.getLogger('InaSAFE')
 
 
-@app.task(queue='inasafe-headless')
+@app.task
 def filter_impact_function(hazard=None, exposure=None):
     """Filter impact functions
 
@@ -54,7 +54,7 @@ def filter_impact_function(hazard=None, exposure=None):
     return result
 
 
-@app.task(queue='inasafe-headless')
+@app.task
 def run_analysis(hazard, exposure, function, aggregation=None,
                  generate_report=False):
     """Run analysis"""
@@ -110,7 +110,7 @@ def run_analysis(hazard, exposure, function, aggregation=None,
     return output_url
 
 
-@app.task(queue='inasafe-headless')
+@app.task
 def read_keywords_iso_metadata(metadata_url, keyword=None):
     """Read xml metadata of a layer
 
