@@ -54,7 +54,7 @@ def filter_impact_function(hazard=None, exposure=None):
     return result
 
 
-@app.task(queue='inasafe-headless')
+@app.task(queue='inasafe-headless-analysis')
 def run_analysis(hazard, exposure, function, aggregation=None,
                  generate_report=False):
     """Run analysis"""
