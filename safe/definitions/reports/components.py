@@ -1,7 +1,5 @@
 # coding=utf-8
-"""Contains definitions about Report components.
-
-"""
+"""Contains definitions about Report components."""
 from __future__ import absolute_import
 
 from safe.definitions.exposure import (
@@ -21,7 +19,7 @@ from safe.definitions.reports import (
     map_product_tag,
     pdf_product_tag,
     template_product_tag,
-    qpt_product_tag)
+    qpt_product_tag, generated_output_path)
 
 from safe.common.utilities import safe_dir
 from safe.definitions.fields import (
@@ -76,6 +74,10 @@ __copyright__ = "Copyright 2016, The InaSAFE Project"
 __license__ = "GPL version 3"
 __email__ = "info@inasafe.org"
 __revision__ = '$Format:%H$'
+
+
+standard_prefix_format = (
+    u'{{ date }}_{{ time }}_{{ hazard_title }}on{{ exposure_title }}_')
 
 
 # Individual report component
@@ -466,7 +468,10 @@ standard_impact_report_metadata_html = {
             'processor': jinja2_renderer,
             'extractor': infographic_layout_extractor,
             'output_format': Jinja2ComponentsMetadata.OutputFormat.File,
-            'output_path': 'infographic.html',
+            'output_path': {
+                'type': generated_output_path,
+                'format': standard_prefix_format + u'infographic.html'
+            },
             'extra_args': {
                 'infographics': [population_infographic_component['key']],
                 'footer_format': tr(
@@ -489,7 +494,10 @@ standard_impact_report_metadata_html = {
             'processor': jinja2_renderer,
             'extractor': impact_table_extractor,
             'output_format': Jinja2ComponentsMetadata.OutputFormat.File,
-            'output_path': 'impact-report-output.html',
+            'output_path': {
+                'type': generated_output_path,
+                'format': standard_prefix_format + u'report.html'
+            },
             'template': 'standard-template/'
                         'jinja2/'
                         'impact-report-layout.html',
@@ -555,7 +563,10 @@ standard_impact_report_metadata_pdf = {
             'processor': qgis_composer_html_renderer,
             'extractor': impact_table_pdf_extractor,
             'output_format': QgisComposerComponentsMetadata.OutputFormat.PDF,
-            'output_path': 'impact-report-output.pdf',
+            'output_path': {
+                'type': generated_output_path,
+                'format': standard_prefix_format + u'report.pdf'
+            },
             'tags': [
                 final_product_tag,
                 table_product_tag,
@@ -569,7 +580,10 @@ standard_impact_report_metadata_pdf = {
             'processor': qgis_composer_html_renderer,
             'extractor': infographic_pdf_extractor,
             'output_format': QgisComposerComponentsMetadata.OutputFormat.PDF,
-            'output_path': 'infographic.pdf',
+            'output_path': {
+                'type': generated_output_path,
+                'format': standard_prefix_format + u'infographic.pdf'
+            },
             'page_dpi': 300,
             'page_width': 297,
             'page_height': 210,
@@ -633,8 +647,14 @@ report_a4_blue = {
                 qpt_product_tag
             ],
             'output_path': {
-                'map': 'a4-portrait-blue.pdf',
-                'template': 'a4-portrait-blue.qpt'
+                'map': {
+                    'type': generated_output_path,
+                    'format': standard_prefix_format + u'map_portrait_a4.pdf'
+                },
+                'template': {
+                    'type': generated_output_path,
+                    'format': standard_prefix_format + u'map_portrait_a4.qpt'
+                },
             },
             'extra_args': map_report_extra_args
         },
@@ -657,8 +677,14 @@ report_a4_blue = {
                 qpt_product_tag
             ],
             'output_path': {
-                'map': 'a4-landscape-blue.pdf',
-                'template': 'a4-landscape-blue.qpt'
+                'map': {
+                    'type': generated_output_path,
+                    'format': standard_prefix_format + u'map_landscape_a4.pdf'
+                },
+                'template': {
+                    'type': generated_output_path,
+                    'format': standard_prefix_format + u'map_landscape_a4.qpt'
+                },
             },
             'orientation': 'landscape',
             'page_dpi': 300,

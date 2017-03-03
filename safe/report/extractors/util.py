@@ -65,9 +65,11 @@ def jinja2_output_as_string(impact_report, component_key):
                 return c.output or ''
             elif c.output_format == 'file':
                 try:
-                    filename = os.path.join(
-                        impact_report.output_folder, c.output_path)
-                    filename = os.path.abspath(filename)
+                    filename = impact_report.absolute_output_path(
+                        impact_report.output_folder,
+                        impact_report.metadata.components,
+                        component_key,
+                        impact_report.file_name_context)
                     # We need to open the file in UTF-8, the HTML may have
                     # some accents for instance.
                     with codecs.open(filename, 'r', 'utf-8') as f:

@@ -24,6 +24,7 @@ from safe.defaults import (
     supporters_logo_path,
     default_north_arrow_path)
 from safe import messaging as m
+from safe.definitions.reports import generated_output_path
 from safe.messaging import styles
 from safe.utilities.i18n import tr
 from safe.utilities.keyword_io import KeywordIO
@@ -377,9 +378,29 @@ class ImpactReport(object):
         if not os.path.exists(self._output_folder):
             os.makedirs(self._output_folder)
 
+    @property
+    def file_name_context(self):
+        """Context used to generate output path.
+
+        :return: str
+        """
+        provenance = self.impact_function.provenance
+        datetime = provenance['datetime']
+        date = datetime.strftime('%Y-%m-%d')
+        time = datetime.strftime('%H:%M:%S')
+        hazard_title = provenance['hazard_title']
+        exposure_title = provenance['exposure_title']
+        return {
+            'date': date,
+            'time': time,
+            'hazard_title': hazard_title,
+            'exposure_title': exposure_title,
+        }
+
     @staticmethod
     def absolute_output_path(
-            output_folder, components, component_key):
+            output_folder, components, component_key,
+            file_name_context=None):
         """Return absolute output path of component.
 
         :param output_folder: The base output folder
@@ -391,6 +412,10 @@ class ImpactReport(object):
         :param component_key: The component key
         :type component_key: str
 
+        :param file_name_context: context dict contains variable for
+            resolving path pattern.
+        :type file_name_context: dict
+
         :return: absolute output path
         :rtype: str
 
@@ -398,24 +423,46 @@ class ImpactReport(object):
         """
         comp_keys = [c.key for c in components]
 
+        def extract_path(base_dir, relative_path, context):
+            """Recursively extract relative path."""
+            if isinstance(relative_path, str):
+                return os.path.abspath(
+                    os.path.join(base_dir, relative_path))
+            elif isinstance(relative_path, list):
+                output_list = []
+                for path in relative_path:
+                    extracted_path = extract_path(
+                        base_dir, path, context)
+                    output_list.append(os.path.abspath(
+                        os.path.join(base_dir, extracted_path)))
+                return output_list
+            elif isinstance(relative_path, dict):
+                # check if the path needed to be generated
+                if 'type' in relative_path:
+                    path_type = relative_path['type']
+                    if path_type == generated_output_path:
+                        path_format = relative_path['format']
+                        path_string = path_format.format(
+                            **context)
+                        return os.path.abspath(
+                            os.path.join(base_dir, path_string))
+
+                output_dict = {}
+                for key, path in relative_path.iteritems():
+                    extracted_path = extract_path(
+                        base_dir, path, context)
+                    output_dict[key] = os.path.abspath(
+                        os.path.join(base_dir, extracted_path))
+                return output_dict
+
         if component_key in comp_keys:
             idx = comp_keys.index(component_key)
             output_path = components[idx].output_path
-            if isinstance(output_path, str):
-                return os.path.abspath(
-                    os.path.join(output_folder, output_path))
-            elif isinstance(output_path, list):
-                output_list = []
-                for path in output_path:
-                    output_list.append(os.path.abspath(
-                        os.path.join(output_folder, path)))
-                return output_list
-            elif isinstance(output_path, dict):
-                output_dict = {}
-                for key, path in output_path.iteritems():
-                    output_dict[key] = os.path.abspath(
-                        os.path.join(output_folder, path))
-                return output_dict
+            output_folder = components[idx].output_folder
+            return extract_path(
+                output_folder,
+                output_path,
+                file_name_context)
         return None
 
     def component_absolute_output_path(self, component_key):

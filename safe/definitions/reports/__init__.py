@@ -118,3 +118,17 @@ product_output_type_tag = [
     qpt_product_tag,
     png_product_tag,
 ]
+
+# Used to generate output name
+generated_output_path = {
+    'key': 'generated_output_path',
+    'description': tr(
+        'This output path will be generated using provenance as input for'
+        'the output format.')
+}
+
+defined_output_path = {
+    'key': 'defined_output_path',
+    'description': tr(
+        'This output path is using the output name specified.')
+}
