@@ -141,54 +141,6 @@ exposure_class_field = {
     'replace_null': False
 }
 
-# exposure_vulnerability_score_count_field
-vulnerability_score_count_field = {
-    'key': 'vulnerability_score_exposure_count_field',
-    'name': tr('Exposure Vulnerability Score'),
-    'field_name': 'vulnerability_score_exposure_count',
-    'type': QVariant.String,
-    'length': default_field_length,
-    'precision': 0,
-    'description': tr(  # Short description
-        '...'),
-    'help_text': tr(
-        '...'
-        '...'
-        '...'),
-    'citations': [
-        {
-            'text': None,
-            'link': None
-        }
-    ],
-    # Null value can be replaced by default or not
-    'replace_null': False
-}
-
-# Exposure vulnerability score
-exposure_vulnerability_score_field = {
-    'key': 'exposure_vulnerability_score_field',
-    'name': tr('Exposure Vulnerability Score'),
-    'field_name': 'exposure_vulnerability_score',
-    'type': QVariant.String,
-    'length': default_field_length,
-    'precision': 0,
-    'description': tr(  # Short description
-        'A VULNERABILITY_SCORE attribute in the exposure layer.'),
-    'help_text': tr(
-        'The vulnerability score  attribute will be used'
-        '...'
-        '...'),
-    'citations': [
-        {
-            'text': None,
-            'link': None
-        }
-    ],
-    # Null value can be replaced by default or not
-    'replace_null': False
-}
-
 # # # # # # # # # #
 # Hazard
 # # # # # # # # # #
@@ -1772,29 +1724,6 @@ disabled_displaced_count_field = {
     'replace_null': False
 }
 
-vulnerability_score_field = {
-    'key': 'vulnerability_score_field',
-    'name': tr('Vulnerability Score'),
-    'field_name': 'vulnerability_score',
-    'type': QVariant.String,
-    'length': default_field_length,
-    'precision': 0,
-    'description': tr(
-        'The vulnerability score field indicates ... '
-        '...'),
-    'help_text': tr(
-        '"Vulnerability" is defined as: {concept}').format(
-            concept=concepts['vulnerability']['description']),
-    'citations': [
-        {
-            'text': None,
-            'link': None
-        }
-    ],
-    # Null value can be replaced by default or not
-    'replace_null': False
-}
-
 # # # # # # # # # #
 # Count, outputs (Absolute values)
 # # # # # # # # # #
@@ -3028,6 +2957,7 @@ summary_rules = {
 
 # Add also minimum needs fields
 from safe.definitions.minimum_needs import minimum_needs_fields  # noqa
+from safe.definitions.fbf.fields import fbf_count_fields  # noqa
 count_fields = [
     feature_value_field,
     population_count_field,
@@ -3069,7 +2999,9 @@ count_fields = [
     under_5_displaced_count_field,
     over_60_displaced_count_field,
     disabled_displaced_count_field
-] + minimum_needs_fields
+] \
+               + fbf_count_fields \
+               + minimum_needs_fields
 
 # And also additional minimum needs
 additional_minimum_needs = [

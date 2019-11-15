@@ -30,3 +30,7 @@ from safe.definitions.provenance import *
 from safe.definitions.reports import *
 from safe.definitions.units import *
 from safe.definitions.versions import *
+
+
+# For Forecast-based-Financing definitions
+from safe.definitions.fbf import *

@@ -4,20 +4,14 @@
 import unittest
 
 from safe.definitions.constants import INASAFE_TEST
-from safe.test.utilities import (
-    load_test_vector_layer)
-
 from safe.definitions.fields import (
     total_field,
     exposure_class_field,
     hazard_class_field,
     exposure_count_field,
-    productivity_field,
-    production_cost_field,
-    production_value_field,
-    exposure_vulnerability_score_field,
+    vulnerability_score_count_field,
 )
-from safe.gis.vector.tools import read_dynamic_inasafe_field
+from safe.gis.sanity_check import check_inasafe_fields
 from safe.gis.vector.summary_1_aggregate_hazard import (
     aggregate_hazard_summary)
 from safe.gis.vector.summary_2_aggregation import aggregation_summary
@@ -26,7 +20,9 @@ from safe.gis.vector.summary_4_exposure_summary_table import (
     exposure_summary_table, summarize_result)
 from safe.gis.vector.summary_5_multi_exposure import (
     multi_exposure_aggregation_summary, multi_exposure_analysis_summary)
-from safe.gis.sanity_check import check_inasafe_fields
+from safe.gis.vector.tools import read_dynamic_inasafe_field
+from safe.test.utilities import (
+    load_test_vector_layer)
 
 __copyright__ = "Copyright 2016, The InaSAFE Project"
 __license__ = "GPL version 3"
@@ -114,7 +110,7 @@ class TestSummary(unittest.TestCase):
 
         layer = aggregate_hazard_summary(impact, aggregate_hazard)
 
-        self.assertIn(exposure_vulnerability_score_field['key'], layer.keywords['inasafe_fields'])
+        self.assertIn(vulnerability_score_count_field['key'], layer.keywords['inasafe_fields'])
 
         check_inasafe_fields(layer)
 
